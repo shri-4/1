@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>하유성의 휴대폰</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 기본 설정 및 프레임 ===== */
+        body { margin: 0; padding: 0; background-color: #333; font-family: 'Noto Sans KR', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .phone { aspect-ratio: 390 / 844; max-width: 90vw; max-height: 90vh; width: 390px; height: 844px; border: 12px solid black; border-radius: 50px; box-shadow: 0 0 30px rgba(0,0,0,0.5); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; }
+        .screen { width: 100%; height: 100%; position: relative; overflow: hidden; background-color: #ffffff; border-radius: 38px; }
+
+        /* ===== 페이지 전환 및 레이아웃 ===== */
+        .page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; background-color: #f9f9f9; display: flex; flex-direction: column; transition: opacity 0.2s ease-in-out; visibility: hidden; opacity: 0; z-index: 1; color: #000000; }
+        .page.active { visibility: visible; opacity: 1; z-index: 10; }
+
+        /* ===== 공통 UI 요소 ===== */
+        .status-bar { text-align: right; padding: 18px 25px 10px 25px; font-size: 14px; font-weight: 700; flex-shrink: 0; color: #000000; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 100; }
+        .status-bar.dark-mode { color: #ffffff; background: rgba(0, 0, 0, 0.3); }
+        .app-header { display: flex; justify-content: center; align-items: center; padding: 10px 20px; border-bottom: 1px solid #e0e0e0; flex-shrink: 0; font-weight: 700; font-size: 1.1em; background-color: #f8f8f8; position: relative; }
+        .back-button { cursor: pointer; font-size: 1.2em; font-weight: bold; position: absolute; left: 20px; }
+        .content-body { flex-grow: 1; overflow-y: auto; background-color: #ffffff; }
+        .home-indicator-container { padding: 20px 0 10px 0; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .home-indicator { width: 134px; height: 5px; background-color: #000000; border-radius: 100px; cursor: pointer; }
+
+        /* ===== 잠금 화면 ===== */
+        #lock-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        .lock-screen-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 100px;
+        }
+        #lock-screen-time {
+            font-size: 5.5em;
+            font-weight: 300;
+        }
+        #lock-screen-date {
+            font-size: 1.4em;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        .unlock-prompt-container {
+            width: 100%;
+            padding: 40px 0;
+        }
+        #unlock-prompt {
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: 500;
+            animation: pulse-text 2.5s infinite;
+        }
+        @keyframes pulse-text {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* ===== 홈 화면 ===== */
+        .home-screen { background-size: cover; background-position: center; color: white; }
+        .app-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 20px; flex-grow: 1; align-content: start; }
+        .app-icon { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-align: center; }
+        .app-icon img { width: 60px; height: 60px; border-radius: 15px; margin-bottom: 5px; }
+        .app-icon span { font-size: 12px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .dock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 10px 20px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 20px; margin: 0 10px 5px 10px; }
+
+        /* ===== 앱별/요소별 커스텀 스타일 ===== */
+        .image-placeholder { background-color: #ccc; display: flex; justify-content: center; align-items: center; color: #666; font-size: 12px; text-align: center; padding: 10px; box-sizing: border-box; word-break: keep-all; line-height: 1.3; }
+        
+        .list-item { padding: 15px 20px; border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .list-item:hover { background-color: #f0f0f0; }
+        .list-item .title { font-weight: bold; }
+        .list-item .preview { color: #888; font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        .list-item.missed .title { color: #FF3B30; }
+
+        /* ===== iOS Toggle Switch for Alarms ===== */
+        .alarm-toggle { display: flex; align-items: center; }
+        .toggle-switch { position: relative; display: inline-block; width: 51px; height: 31px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #E9E9EA; -webkit-transition: .4s; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 27px; width: 27px; left: 2px; bottom: 2px; background-color: white; -webkit-transition: .4s; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        input:checked + .slider { background-color: #34C759; }
+        input:checked + .slider:before { -webkit-transform: translateX(20px); -ms-transform: translateX(20px); transform: translateX(20px); }
+
+        /* 사진첩 */
+        .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; }
+        .photo-item { aspect-ratio: 1 / 1; cursor: pointer; }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+        .section-title { padding: 10px 20px; background-color: #f0f0f0; font-weight: bold; font-size: 0.9em; }
+        .section-title[onclick] { cursor: pointer; }
+        
+        /* ===== Photo Modal ===== */
+        .photo-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+        }
+        .photo-modal-overlay.visible {
+            display: flex;
+        }
+        .photo-modal-content {
+            max-width: 100%;
+            max-height: 80%;
+            object-fit: contain;
+        }
+        .close-photo-modal {
+            position: absolute;
+            top: 40px;
+            right: 25px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .close-photo-modal:hover,
+        .close-photo-modal:focus {
+            color: #bbb;
+            text-decoration: none;
+        }
+
+        /* 미리 알림 */
+        .reminder-item {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .reminder-checkbox {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            border: 2px solid #c8c8c8;
+            border-radius: 4px;
+            margin-right: 15px;
+            position: relative;
+        }
+        .reminder-checkbox.checked {
+            background-color: #000000;
+            border-color: #000000;
+        }
+        .reminder-checkbox.checked::after {
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: 3px;
+            width: 6px;
+            height: 12px;
+            border: solid #FFD700; /* Pink -> Yellow */
+            border-width: 0 3px 3px 0;
+            -webkit-transform: rotate(45deg);
+            -ms-transform: rotate(45deg);
+            transform: rotate(45deg);
+        }
+
+        /* 메시지 */
+        .chat-body { display: flex; flex-direction: column; padding: 20px; }
+        .message-bubble { padding: 10px 15px; border-radius: 18px; max-width: 75%; margin-bottom: 10px; line-height: 1.4; word-wrap: break-word; }
+        .message-bubble.sent { background-color: #007AFF; color: white; align-self: flex-end; }
+        .message-bubble.received { background-color: #E5E5EA; color: #000000; align-self: flex-start; }
+
+        /* ===== 캘린더 (MEOWV Style) ===== */
+        #calendar .app-header {
+            font-family: 'Mochiy Pop One', sans-serif;
+            font-size: 2.5em;
+            padding: 15px 0 10px 0;
+            background: black;
+            color: #FFD700; /* Pink -> Yellow */
+            border-bottom: none;
+            letter-spacing: 3px;
+            text-shadow: none; /* 네온 효과 제거 */
+        }
+        #calendar .content-body {
+            background: black;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent any potential overflow */
+        }
+        .calendar-container {
+            background: white;
+            border: 2px solid black;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .day-names {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background-color: #FFD700; /* Pink -> Yellow */
+            color: black;
+            font-weight: 700;
+            text-align: center;
+            font-size: 0.8em;
+            border-bottom: 2px solid black;
+        }
+        .day-names div {
+            padding: 6px 0;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0;
+            flex-grow: 1;
+            min-height: 0;
+        }
+        .calendar-grid .day-cell {
+            position: relative;
+            border-bottom: 1px solid black;
+            border-right: 1px solid black;
+            padding: 4px;
+            font-size: 0.75em;
+            aspect-ratio: 1;
+        }
+        .calendar-grid .day-cell:nth-child(7n) {
+            border-right: none;
+        }
+        .calendar-grid .day-cell.empty {
+            background-color: #fdfdfd;
+        }
+        .date-container {
+            position: absolute;
+            top: 4px;
+            left: 5px;
+            right: 5px;
+            text-align: left;
+        }
+        .date-number {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #333;
+        }
+        .deco-doodle {
+            position: absolute;
+            font-size: 2.2em;
+            opacity: 0.9;
+        }
+        .event-deco {
+            top: -10px;
+            right: -10px;
+            font-size: 1.8em;
+            z-index: 5;
+        }
+        .intersection-doodle {
+            top: 0;
+            left: 0;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+        }
+        .animated-emoji {
+            display: inline-block;
+            animation: wiggle 0.6s ease-in-out infinite;
+        }
+        .event-day {
+            background-color: #FFD700; /* Pink -> Yellow */
+        }
+        .event-day .event-title {
+            color: black;
+        }
+        .event-day .date-number {
+            color: black;
+        }
+        .event-title {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            padding: 0 2px;
+            text-align: center;
+            font-size: 0.85em;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .event-list {
+            display: none !important;
+        }
+
+        /* ===== 사파리 ===== */
+        .safari-header {
+            padding: 10px 15px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .search-bar-container {
+            display: flex;
+            align-items: center;
+            background-color: #EFEFF4;
+            border-radius: 10px;
+        }
+        .search-icon {
+            padding: 0 4px 0 12px;
+            font-size: 1.1em;
+            color: #8E8E93;
+            line-height: 0;
+        }
+        .search-bar {
+            width: 100%;
+            padding: 8px 15px 8px 5px;
+            font-size: 1em;
+            border: none;
+            background-color: transparent;
+            box-sizing: border-box;
+            outline: none;
+        }
+        #safari-history-container {
+            display: none;
+        }
+
+        /* ===== 음악 앱 ===== */
+        #music {
+            background: linear-gradient(to bottom, #FFD700, black);
+            color: white;
+        }
+        #music .status-bar,
+        #music .app-header,
+        #music .content-body {
+            background-color: transparent;
+        }
+        #music .app-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        #music .list-item {
+            border-bottom-color: rgba(255, 255, 255, 0.15);
+        }
+        #music .list-item .preview {
+            color: #e0e0e0;
+        }
+        
+        /* 메모 */
+        .note-content { padding: 20px; font-size: 1.1em; line-height: 1.6; white-space: pre-wrap; }
+        .lock-icon { margin-right: 8px; }
+
+        /* 일기 (New Design) */
+        #diary .app-header {
+            background-color: #1a1a1a;
+            color: #FFFF00; /* Bright Yellow */
+            font-family: 'Mochiy Pop One', sans-serif;
+            font-size: 1.6em;
+            text-shadow: 1px 1px 0 #FF007F, -1px -1px 0 #00C7FF; /* Pink and Blue shadow */
+            border-bottom: 2px solid #FFFF00;
+            letter-spacing: 1px;
+        }
+        #diary .content-body {
+            background-color: #f0f0f0;
+            background-image:
+                linear-gradient(rgba(200, 200, 200, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(200, 200, 200, 0.4) 1px, transparent 1px);
+            background-size: 25px 25px;
+            padding: 25px 15px;
+        }
+        .diary-entry {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.1);
+            position: relative;
+            border: 1px solid #ccc;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .diary-entry:nth-child(4n+1) { transform: rotate(-1.5deg); background-color: #fffde7; }
+        .diary-entry:nth-child(4n+2) { transform: rotate(1deg); background-color: #f3e5f5; }
+        .diary-entry:nth-child(4n+3) { transform: rotate(2deg); background-color: #fff0f5; }
+        .diary-entry:nth-child(4n+4) { transform: rotate(-1deg); background-color: #e3f2fd; }
+        .diary-entry .date {
+            font-weight: 700;
+            color: #444;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+        .diary-entry .content {
+            line-height: 1.6;
+            font-size: 1em;
+            color: #333;
+        }
+
+        /* 커스텀 앱 */
+        .starlight-note-body { padding: 20px; }
+        .lyric-item { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .lyric-item .title { font-size: 1.2em; font-weight: bold; }
+        .lyric-item .snippet { font-style: italic; color: #666; margin-top: 5px; }
+
+        /* 가사집 (Custom App 1) - 밤하늘 테마 */
+        #customApp1 .app-header {
+            background-color: #1a1a2e; /* Dark navy blue */
+            color: #FFD700; /* Gold */
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
+            border-bottom: 1px solid #FFD700;
+        }
+        #customApp1 .content-body {
+            background-color: #1a1a2e; /* Dark navy blue */
+        }
+        #customApp1 .lyric-item {
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3); /* Faint gold line */
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        #customApp1 .lyric-item:hover {
+            background-color: rgba(255, 215, 0, 0.15);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+            border-bottom-color: transparent;
+            cursor: pointer;
+        }
+        #customApp1 .lyric-item .title {
+            color: #ffffff; /* White title */
+        }
+        #customApp1 .lyric-item .title::before {
+            content: '⭐ ';
+            font-size: 0.9em;
+            display: inline-block;
+            animation: wiggle 0.8s ease-in-out infinite;
+        }
+        #customApp1 .lyric-item .snippet {
+            color: #bdc3c7; /* Light grey for snippet */
+            margin-top: 8px;
+            padding-left: 28px; /* Indent snippet */
+        }
+        
+        /* ===== 알림 배너 (Notification Banner) ===== */
+        .notification-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-150%);
+            width: 95%;
+            max-width: 380px;
+            background-color: rgba(240, 240, 240, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            visibility: hidden;
+        }
+        .notification-banner.show {
+            transform: translateX(-50%) translateY(0);
+            visibility: visible;
+        }
+        .notification-app-icon {
+            flex-shrink: 0;
+            margin-right: 10px;
+        }
+        .notification-app-icon img {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+        }
+        .notification-text-content {
+            flex-grow: 1;
+        }
+        .notification-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+        }
+        .notification-body {
+            font-size: 15px;
+            color: #000;
+            margin-top: 2px;
+        }
+
+        /* ===== Password Modal ===== */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .modal-overlay.visible {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 14px;
+            width: 270px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        .modal-content h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.1em;
+            font-weight: 700;
+        }
+        #password-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 1em;
+        }
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            border-top: 1px solid #dbdbdb;
+            padding-top: 12px;
+            margin-top: 5px;
+        }
+        .modal-buttons button {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background-color: transparent;
+            cursor: pointer;
+            font-size: 1.05em;
+            font-weight: 400;
+            color: #007AFF;
+        }
+        .modal-buttons button#password-submit {
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone">
+        <div class="screen">
+            <div id="notification-banner" class="notification-banner">
+                <div class="notification-app-icon">
+                    <img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/M.webp" alt="Messages Icon">
+                </div>
+                <div class="notification-text-content">
+                    <div class="notification-title">010-</div>
+                    <div class="notification-body"></div>
+                </div>
+            </div>
+
+            <!-- 잠금 화면 -->
+            <div id="lock-screen" class="page home-screen active">
+                <div class="lock-screen-content">
+                    <div id="lock-screen-time"></div>
+                    <div id="lock-screen-date"></div>
+                </div>
+                <div class="unlock-prompt-container">
+                    <div id="unlock-prompt">터치하여 잠금해제</div>
+                </div>
+            </div>
+
+            <!-- 홈 화면 -->
+            <div id="home" class="page home-screen">
+                <div class="status-bar dark-mode"></div>
+                <div class="app-grid">
+                    <!-- 기본 앱 -->
+                    <div class="app-icon" onclick="showPage('calendar')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/S.webp"><span>캘린더</span></div>
+                    <div class="app-icon" onclick="showPage('photos')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/image.webp"><span>사진첩</span></div>
+                    <div class="app-icon" onclick="showPage('notes')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/note.webp"><span>메모</span></div>
+                    <div class="app-icon" onclick="handleDiaryClick()"><img src="https://github.com/sidsid-hue/sid/blob/main/free-icon-star-7656139.png?raw=true"><span>일기장</span></div>
+                    <div class="app-icon" onclick="showPage('reminders')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/re.webp"><span>미리 알림</span></div>
+                    <div class="app-icon" onclick="showPage('music')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/Mu.webp"><span>음악</span></div>
+                    <!-- 커스텀 앱 -->
+                    <div id="custom-app-icon-1" class="app-icon" onclick="showPage('customApp1')"></div>
+                </div>
+                <div class="dock">
+                    <div class="app-icon" onclick="showPage('calls')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/Call.webp"></div>
+                    <div class="app-icon" onclick="showPage('messages')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/M.webp"></div>
+                    <div class="app-icon" onclick="showPage('alarms')"><img src="https://github.com/sidsid-hue/sid/blob/main/alarm22.png?raw=true"></div>
+                    <div class="app-icon" onclick="showPage('safari')"><img src="https://raw.githubusercontent.com/sidsid-hue/sid/4186332fd67b6cfa2470d33bcad0dcad89113e2c/icon/SA.webp"></div>
+                </div>
+            </div>
+
+            <!-- 전화 -->
+            <div id="calls" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    최근 통화
+                </div>
+                <div class="content-body" id="call-history-list"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 알람 -->
+            <div id="alarms" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    알람
+                </div>
+                <div class="content-body" id="alarm-list"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 캘린더 -->
+            <div id="calendar" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header" id="calendar-header"></div>
+                <div class="content-body">
+                    <div class="calendar-grid" id="calendar-grid-view"></div>
+                    <div class="event-list" id="calendar-event-list"></div>
+                </div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 사진첩 -->
+            <div id="photos" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    최근 항목
+                </div>
+                <div class="content-body">
+                    <div class="section-title">최근 사진</div>
+                    <div class="photo-grid" id="recent-photos-grid"></div>
+                    <div class="section-title" onclick="toggleSecretPhotos()">비밀 사진</div>
+                    <div class="photo-grid" id="secret-photos-grid" style="display: none;"></div>
+                </div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 미리 알림 -->
+            <div id="reminders" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    미리 알림
+                </div>
+                <div class="content-body" id="reminders-list"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 문자 목록 -->
+            <div id="messages" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    메시지
+                </div>
+                <div class="content-body" id="message-list"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+            
+            <!-- 문자 상세 -->
+            <div id="message-detail" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('messages')">‹</span>
+                    <span id="message-detail-sender"></span>
+                </div>
+                <div class="content-body">
+                    <div class="chat-body" id="message-detail-content"></div>
+                </div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 메모 목록 -->
+            <div id="notes" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    메모
+                </div>
+                <div class="content-body" id="note-list"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 메모 상세 -->
+            <div id="note-detail" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('notes')">‹</span>
+                    <span id="note-detail-title"></span>
+                </div>
+                <div class="content-body">
+                    <div class="note-content" id="note-detail-content"></div>
+                </div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 사파리 -->
+            <div id="safari" class="page">
+                <div class="status-bar"></div>
+                <div class="safari-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    <div class="search-bar-container" style="margin-left: 25px;">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-bar" placeholder="검색 또는 웹 사이트 이름 입력">
+                    </div>
+                </div>
+                <div class="content-body" id="safari-content"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 음악 -->
+            <div id="music" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header" id="music-playlist-title"></div>
+                <div class="content-body" id="music-track-list"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 일기 -->
+            <div id="diary" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header">
+                    <span class="back-button" onclick="showPage('home')">‹</span>
+                    Diary
+                </div>
+                <div class="content-body" id="diary-list"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- 커스텀 앱 1 -->
+            <div id="customApp1" class="page">
+                <div class="status-bar"></div>
+                <div class="app-header" id="custom-app1-header"></div>
+                <div class="content-body" id="custom-app1-content"></div>
+                <div class="home-indicator-container"><div class="home-indicator" onclick="showPage('home')"></div></div>
+            </div>
+
+            <!-- Photo Modal -->
+            <div id="photo-modal" class="photo-modal-overlay">
+                <span class="close-photo-modal">&times;</span>
+                <img class="photo-modal-content" id="modal-image">
+            </div>
+            
+            <!-- Password Modal for Notes -->
+            <div id="password-modal-overlay" class="modal-overlay">
+                <div class="modal-content">
+                    <h3>암호를 입력하세요</h3>
+                    <input type="password" id="password-input" placeholder="암호">
+                    <div class="modal-buttons">
+                        <button id="password-cancel">취소</button>
+                        <button id="password-submit">확인</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+const phoneData = {
+    callHistory: [
+        { name: "은별이❤️", type: "수신 통화", duration: "12분 34초" },
+        { name: "최서아", type: "발신 통화", duration: "28분 11초" },
+        { name: "밴드-강혁", type: "부재중 전화", duration: "" },
+        { name: "알바몬", type: "발신 통화", duration: "2분 58초" },
+        { name: "엄마", type: "부재중 전화", duration: "" },
+        { name: "김유나", type: "수신 통화", duration: "45분 2초" },
+        { name: "은별이❤️", type: "발신 통화", duration: "5분 1초" },
+        { name: "모르는 번호", type: "부재중 전화", duration: "" },
+        { name: "밴드-선배", type: "수신 통화", duration: "8분 40초" },
+        { name: "박지민", type: "발신 통화", duration: "15분 55초" },
+    ],
+    alarms: [
+        { time: "07:00", label: "일어나!! 학교 가야지!!", enabled: true },
+        { time: "17:00", label: "우리 공주님 모시러 갈 시간💖", enabled: true },
+        { time: "21:00", label: "밴드 합주", enabled: true },
+        { time: "23:00", label: "가사 쓰기", enabled: false },
+        { time: "23:59", label: "오늘도 끝", enabled: true },
+    ],
+    calendar: {
+        month: "6월",
+        year: "2025",
+        events: [
+            { date: 13, title: "체육대회", type: "sports_day" },
+            { date: 18, title: "은별이 학예회", type: "family" },
+            { date: 20, title: "축제", type: "festival" },
+            { date: 28, title: "오디션", type: "audition" },
+            { date: 30, title: "시험", type: "exam" }
+        ]
+    },
+    photos: {
+        recent: [
+            "https://github.com/sidsid-hue/sid/blob/main/%EC%9C%A0%EC%84%B1%EC%85%80%EC%B9%B41.png?raw=true",
+            "https://github.com/sidsid-hue/sid/blob/main/%ED%95%98%EC%9C%A0%EC%84%B1%20%EC%85%80%EC%B9%B4.png?raw=true",
+            "https://github.com/sidsid-hue/sid/blob/main/%EA%B3%A0%EB%93%B1/%ED%95%98%EC%9D%80%EB%B3%84.png?raw=true",
+            "https://github.com/sidsid-hue/sid/blob/main/%EA%B3%A0%EB%93%B1/spellai-1756881722996.jpg?raw=true"
+        ],
+        secret: [
+            "https://github.com/sidsid-hue/sid/blob/main/%EB%B9%84%EB%B0%80%EC%82%AC%EC%A7%84.png?raw=true"
+        ],
+    },
+    reminders: [
+        { task: "은별이 생일 선물 - 토끼 인형 사주기", completed: false },
+        { task: "담배 사기 - 말보로 골드", completed: true },
+        { task: "새 기타 스트링 교체", completed: false },
+        { task: "바닐라 핸드크림 주문하기", completed: false },
+        { task: "엄마한테 용돈 달라고 말해보기...", completed: false },
+    ],
+    messages: [
+        {
+            id: 1,
+            sender: "은별이❤️",
+            preview: "오빠 오늘 언제 와?? 보고싶어!",
+            conversation: [
+                { type: "received", text: "오빠 오늘 언제 와?? 보고싶어!🐰" },
+                { type: "sent", text: "오빠 연습 끝나고 바로 갈게! 까까 사갈까?" },
+                { type: "received", text: "응!! 초코송이!! 🍄" },
+                { type: "sent", text: "알겠어 이따 봐 공주님❤️" },
+            ]
+        },
+        {
+            id: 2,
+            sender: "우리은행",
+            preview: "[지출] 1,500원 (GS25)",
+            conversation: [
+                { type: "received", text: "[우리 체크카드] 05/28 15:30 1,500원(GS25) 잔액 12,540원" },
+                { type: "received", text: "[우리 체크카드] 05/29 08:10 4,500원(에그드랍) 잔액 8,040원" },
+                { type: "received", text: "[우리 체크카드] 06/01 19:00 25,000원(무신사) 잔액 1,200원. ※잔액부족" },
+                { type: "sent", text: "아씨" },
+                { type: "received", text: "[우리 체크카드] 06/01 13:00 12,800원(올리브영) 승인거절. 잔액부족" },
+            ]
+        },
+        {
+            id: 3,
+            sender: "최서아",
+            preview: "유성아 너 이번 축제 때 노래해?😍",
+            conversation: [
+                { type: "received", text: "유성아 너 이번 축제 때 노래해?😍" },
+                { type: "sent", text: "음~ 비밀인데? 보러 올 거야?ㅎㅎ" },
+                { type: "received", text: "당연히 가야지! 너 보러 가는 거지~" },
+                { type: "sent", text: "진짜~? 그럼 더 열심히 해야겠다!" },
+            ]
+        },
+        {
+            id: 4,
+            sender: "밴드-강혁",
+            preview: "야 내일 합주 늦지 마라",
+            conversation: [
+                { type: "received", text: "야 내일 합주 늦지 마라" },
+                { type: "sent", text: "내가 언제 늦었다고😑" },
+                { type: "received", text: "저번주에 10분 늦었잖아" },
+                { type: "sent", text: "아 그건 은별이 땜에 그런거고! 안 늦는다 걱정 ㄴㄴ" },
+            ]
+        },
+        {
+            id: 5,
+            sender: "엄마",
+            preview: "돈없다",
+            conversation: [
+                { type: "received", text: "오늘 늦게 들어온다" },
+                { type: "received", text: "은별이 저녁 좀 챙겨" },
+                { type: "received", text: "돈없다" },
+            ]
+        },
+    ],
+    notes: [
+        { id: 1, type: "secret", title: "웃기다", content: "애들이 뒤에서 그러더라? 나보고 '대가리 꽃밭'이라고. 푸핫, 웃기지 않아? 근데 뭐, 틀린 말도 아니네. 차라리 꽃밭인 게 낫지. 예쁘고, 향기도 나고, 다들 좋아하잖아. 아무도 망가진 땅속은 들여다보려고 하지 않으니까. 그래, 그냥 평생 꽃밭으로 살래. 활짝 펴서 예쁨 받다가, 시들면... 그냥 버려지면 그만이니까." },
+        { id: 2, type: "secret", title: "흠", content: "김주환\n- 부자인데 왜 그렇게 찐따같이 살지?\n\n강도훈\n- 허세충" },
+        { id: 4, type: "normal", title: "쇼핑 리스트", content: "- 계란\n- 라면\n- 은별이 초코송이\n- 막대사탕" },
+        { id: 6, type: "normal", title: "알바 구할 곳", content: "- 학교 앞 편의점 (야간)\n- 시내 카페 (주말)\n- 전단지 (시급 제일 셈)" },
+        { id: 7, type: "normal", title: "갖고 싶은 거", content: "- 펜더 스트라토캐스터\n- 오버핏 후드티 (회색)\n- 은별이 새 운동화" },
+        { id: 8, type: "secret", title: "도망치고 싶을 때", content: "-엄마 술 마시는 날 -> 은별이 데리고 편의점 가기.\n-돈 다 떨어졌을 때 -> 민혁 선배한테 농담인 척 밥 사달라고 하기. (실패)\n-혼자 있기 무서울 때 -> 그냥 아무한테나 디엠 보내기.\n-진짜 다 끝내고 싶을 때 -> 한강 다리 끝까지 걸어가 보기. (아직 안 해봄)" },
+        { id: 9, type: "normal", title: "밴드부 합주곡 리스트", content: "혁오 - TOMBOY (이번 축제 메인 곡)\n실리카겔 - NO PAIN (인트로 연습)\nLANY - Malibu Nights (어쿠스틱 편곡해보기)\n선배들한테 카피곡 추천받기" },
+    ],
+    safari: {
+        recentSearches: ["알바몬 학생 가능", "기타 코드 쉽게 따는 법", "컨실러 추천", "인디 밴드 노래 추천", "바닐라 핸드크림 1+1"],
+        deletedHistory: ["금단 증상", "가정폭력 신고하면", "울음 참는 법"],
+    },
+    music: {
+        playlistTitle: "✨빛나는 건 다 예뻐✨",
+        tracks: [
+            { title: "TOMBOY", artist: "혁오 (hyukoh)" },
+            { title: "Malibu Nights", artist: "LANY" },
+            { title: "Somebody Else", artist: "The 1975" },
+            { title: "D (Half Moon)", artist: "DEAN" },
+            { title: "주저하는 연인들을 위해", artist: "잔나비" },
+            { title: "YOUTH", artist: "Troye Sivan" },
+            { title: "I (Feat. 버벌진트)", artist: "태연 (TAEYON)" },
+            { title: "lowkey", artist: "NIKI" },
+            { title: "Hollywood", artist: "검정치마" },
+            { title: "날개", artist: "못 (Mot)" },
+        ]
+    },
+    diary: [
+        { date: "2022-10-01", content: "아, 진짜 미치겠네~ 우리 아빠가 사업을 말아먹었다고? ㅋㅋ 그래도 뭐, 나만 있으면 다 해결되지 않나? 엄마 아빠가 싸우기 시작하면 내가 요리조리 웃으면서 끼어들어서 분위기 바꿔버리거든. 아직까지는 내가 있으니까 집안이 완전히 망하지는 않는 것 같아. 역시 하유성의 매력이란..." },
+        { date: "2023-05-12", content: "이제는 내가 뭘 해도 안 되는 것 같다. 아빠가 바람 피웠다고 엄마가 난리야. 하... 진짜 최악이네. 엄마는 매일 울면서 화내고, 은별이는 자꾸 아빠 어디 갔냐고 묻고. 뭐라고 대답해야 할지 모르겠어. 내가 아무리 웃어봐도 집안 분위기는 계속 어둡기만 하고. 이런 거 처음이야, 진짜." },
+        { date: "2024-03-04", content: "결국 이혼했다. 옥탑방로 이사도 했고. 창밖으로 별이 보이네, 꽤 예쁘긴 한데... 우리 집은 왜 이렇게 높은 곳에 있는데도 이렇게 초라할까? ㅋㅋ 근데 은별이는 신났나 봐. 뛰어다니면서 좋아하길래 나도 그냥 따라서 웃어줬어. 뭐, 어쩔 수 없지." },
+        { date: "2024-09-21", content: "오늘 엄마한테 처음으로 뺨을 맞았다. 아빠를 닮았다고. 이 점 때문인가? 진짜 개빡치네. 아파서 눈물 날 뻔했는데 꾹 참았어. 울면 더 한심해 보일 것 같아서. 그냥 괜찮은 척 했지, 뭐." },
+        { date: "2025-01-01", content: "새해 첫날. 은별이가 내 볼에 뽀뽀하면서 \"오빠가 세상에서 제일 좋아!\" 이러네 ㅋㅋ 아, 진짜 이 말 한마디면 다 용서가 되는 것 같아. 그래, 너만 있으면 돼. 내가 다 지켜줄 거야, 우리 예쁜 은별이." },
+        { date: "2025-04-15", content: "드디어 밴드부 들어갔다! 내 기타 소리 듣고 애들이 완전 환호하더라고? 여자애들도 번호 달라고 하고 ㅋㅋ 역시 하유성은 어디 가서도 인기쟁이야~ 기분 개좋다, 진짜. 이게 바로 내 매력이지!" },
+    ],
+    metaMessages: [
+        "헉 저기요ㅠㅠ",
+        "저 이 폰 주인인데요...",
+        "아 진짜 개빡치네ㅠㅠㅠㅠㅠㅠ",
+        "혹시 지금 제 폰 주우셨으면 돌려주실 수 있나요?ㅠㅠ",
+        "광진고 정문에서 기다릴게요ㅠㅠ 제발요 진짜..."
+    ],
+    customApp1: {
+        appName: "가사집",
+        iconDescription: "a%20dark%20blue%20notebook%20with%20a%20single%20glowing%20star%20on%20the%20cover",
+        content: {
+            lyrics: [
+                { title: "떨어지는 별 (Falling Star)", snippet: "결국 떨어질 걸 알면서 오늘도 가장 밝은 척..." },
+                { title: "옥탑방의 블루스", snippet: "녹슨 문 너머의 세상은 너무 멀어..." },
+                { title: "바닐라 향기", snippet: "달콤한 향기 뒤에 숨겨둔 씁쓸한 내 담배 연기..." },
+                { title: "안녕, 나의 (미완)", snippet: "말 한 번 못 걸어본 채, 너는 멀어져 간다..." }
+            ]
+        }
+    }
+};
+
+let unlockTarget = null;
+
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    const newPage = document.getElementById(pageId);
+    if (newPage) {
+        newPage.classList.add('active');
+    }
+}
+
+function renderCallHistory() {
+    const container = document.getElementById('call-history-list');
+    container.innerHTML = phoneData.callHistory.map(call => `
+        <div class="list-item ${call.type === '부재중 전화' ? 'missed' : ''}">
+            <div>
+                <div class="title">${call.name}</div>
+                <div class="preview">${call.type}</div>
+            </div>
+            <span>${call.duration}</span>
+        </div>
+    `).join('');
+}
+
+function renderAlarms() {
+    const container = document.getElementById('alarm-list');
+    container.innerHTML = phoneData.alarms.map(alarm => `
+        <div class="list-item">
+            <div>
+                <div class="title" style="font-size: 1.5em; ${!alarm.enabled ? 'color: #888;' : ''}">${alarm.time}</div>
+                <div class="preview" style="${!alarm.enabled ? 'color: #888;' : ''}">${alarm.label}</div>
+            </div>
+            <div class="alarm-toggle">
+                 <label class="toggle-switch">
+                    <input type="checkbox" ${alarm.enabled ? 'checked' : ''}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderCalendar() {
+    const calendarData = phoneData.calendar;
+    const year = parseInt(calendarData.year);
+    const month = parseInt(calendarData.month) - 1; // JS months are 0-indexed
+
+    document.getElementById('calendar-header').innerHTML = `<span class="back-button" onclick="showPage('home')">‹</span> 2025 JUNE`;
+    const contentBody = document.querySelector('#calendar .content-body');
+    contentBody.innerHTML = ''; // Clear previous content
+
+    const container = document.createElement('div');
+    container.className = 'calendar-container';
+
+    const dayNames = document.createElement('div');
+    dayNames.className = 'day-names';
+    dayNames.innerHTML = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(d => `<div>${d}</div>`).join('');
+    container.appendChild(dayNames);
+
+    const grid = document.createElement('div');
+    grid.className = 'calendar-grid';
+
+    let firstDayOfMonth = new Date(year, month, 1).getDay();
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDayOfMonth; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell empty';
+        grid.appendChild(cell);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+
+        const event = calendarData.events.find(e => e.date === i);
+        
+        let content = '';
+        let decoContent = '';
+        
+        if (event) {
+            cell.classList.add('event-day');
+            let icon = '';
+
+            switch(event.type) {
+                case 'sports_day': icon = '👟'; break;
+                case 'family': icon = '💖'; break;
+                case 'festival': icon = '🎸'; break;
+                case 'audition': icon = '🎤'; break;
+                case 'exam': icon = '✏️'; break;
+            }
+            
+            decoContent += `<div class="deco-doodle animated-emoji event-deco">${icon}</div>`;
+            
+            content = `
+                <div class="date-container">
+                    <span class="date-number">${i}</span>
+                </div>
+                <div class="event-title">${event.title}</div>
+            `;
+
+        } else {
+            content = `<div class="date-container"><span class="date-number">${i}</span></div>`;
+        }
+        
+        cell.innerHTML = content + decoContent;
+        grid.appendChild(cell);
+    }
+    
+    const totalDaysInGrid = firstDayOfMonth + daysInMonth;
+    const remainingCells = (7 - (totalDaysInGrid % 7)) % 7;
+    for (let i = 0; i < remainingCells; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell empty';
+        grid.appendChild(cell);
+    }
+
+    container.appendChild(grid);
+    contentBody.appendChild(container);
+}
+
+
+function renderPhotos() {
+    const recentGrid = document.getElementById('recent-photos-grid');
+    recentGrid.innerHTML = phoneData.photos.recent.map(url => `
+        <div class="photo-item" onclick="openPhotoModal('${url}')"><img src="${url}" alt="Recent Photo"></div>
+    `).join('');
+
+    const secretGrid = document.getElementById('secret-photos-grid');
+    secretGrid.innerHTML = phoneData.photos.secret.map(url => `
+        <div class="photo-item" onclick="openPhotoModal('${url}')"><img src="${url}" alt="Secret Photo"></div>
+    `).join('');
+}
+
+function openPhotoModal(imageUrl) {
+    const modal = document.getElementById('photo-modal');
+    const modalImg = document.getElementById('modal-image');
+    if (modal && modalImg) {
+        modalImg.src = imageUrl;
+        modal.classList.add('visible');
+    }
+}
+
+function closePhotoModal() {
+    const modal = document.getElementById('photo-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+    }
+}
+
+function toggleSecretPhotos() {
+    const secretGrid = document.getElementById('secret-photos-grid');
+    if (secretGrid) {
+        const isHidden = secretGrid.style.display === 'none';
+        secretGrid.style.display = isHidden ? 'grid' : 'none';
+    }
+}
+
+function renderReminders() {
+    const container = document.getElementById('reminders-list');
+    container.innerHTML = phoneData.reminders.map((r, index) => `
+        <div class="list-item" onclick="toggleReminder(${index})">
+            <div class="reminder-item">
+                <div class="reminder-checkbox ${r.completed ? 'checked' : ''}"></div>
+                <span class="title" style="${r.completed ? 'text-decoration: line-through; color: #888;' : ''}">${r.task}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleReminder(index) {
+    if (phoneData.reminders[index]) {
+        phoneData.reminders[index].completed = !phoneData.reminders[index].completed;
+        renderReminders();
+    }
+}
+
+function renderMessageList() {
+    const container = document.getElementById('message-list');
+    container.innerHTML = phoneData.messages.map(msg => `
+        <div class="list-item" onclick="showMessageDetail(${msg.id})">
+            <div>
+                <div class="title">${msg.sender}</div>
+                <div class="preview">${msg.preview}</div>
+            </div>
+            <span>›</span>
+        </div>
+    `).join('');
+}
+
+function showMessageDetail(id) {
+    const messageData = phoneData.messages.find(msg => msg.id === id);
+    if (!messageData) return;
+
+    document.getElementById('message-detail-sender').textContent = messageData.sender;
+    const container = document.getElementById('message-detail-content');
+    container.innerHTML = messageData.conversation.map(chat => `
+        <div class="message-bubble ${chat.type}">${chat.text}</div>
+    `).join('');
+    showPage('message-detail');
+}
+
+function showPasswordPrompt() {
+    const modal = document.getElementById('password-modal-overlay');
+    modal.classList.add('visible');
+    const input = document.getElementById('password-input');
+    input.value = '';
+    input.focus();
+}
+
+function hidePasswordPrompt() {
+    const modal = document.getElementById('password-modal-overlay');
+    modal.classList.remove('visible');
+    unlockTarget = null;
+}
+
+function handleNoteClick(noteId) {
+    const noteData = phoneData.notes.find(note => note.id === noteId);
+    if (!noteData) {
+        console.error("Note not found:", noteId);
+        return;
+    }
+
+    if (noteData.type === 'secret') {
+        unlockTarget = noteId;
+        showPasswordPrompt();
+    } else {
+        showNoteDetail(noteId);
+    }
+}
+
+function handleDiaryClick() {
+    unlockTarget = 'diary';
+    showPasswordPrompt();
+}
+
+function renderNoteList() {
+    const container = document.getElementById('note-list');
+    const sortedNotes = [...phoneData.notes].sort((a, b) => {
+        if (a.type === 'secret' && b.type !== 'secret') return -1;
+        if (a.type !== 'secret' && b.type === 'secret') return 1;
+        return a.id - b.id;
+    });
+
+    container.innerHTML = sortedNotes.map(note => {
+        const preview = note.type === 'secret' ? '비밀 메모입니다.' : (note.content.substring(0, 30) + '...');
+        return `
+            <div class="list-item" data-note-id="${note.id}">
+                <div>
+                    <div class="title">${note.type === 'secret' ? '<span class="lock-icon">🔒</span>' : ''}${note.title}</div>
+                    <div class="preview">${preview}</div>
+                </div>
+                <span>›</span>
+            </div>
+        `;
+    }).join('');
+}
+
+
+function showNoteDetail(id) {
+    const noteData = phoneData.notes.find(note => note.id === id);
+    if (!noteData) {
+        return; // Note not found
+    }
+    document.getElementById('note-detail-title').textContent = noteData.title;
+    document.getElementById('note-detail-content').innerHTML = noteData.content;
+    showPage('note-detail');
+}
+
+function renderSafariHistory() {
+    const container = document.getElementById('safari-content');
+    let html = '<div id="safari-history-container">';
+    html += '<div class="section-title">최근 검색어</div>';
+    html += phoneData.safari.recentSearches.map(term => `<div class="list-item"><div>${term}</div></div>`).join('');
+    html += '<div class="section-title" onclick="toggleDeletedHistory()">삭제한 기록</div>';
+    html += '<div id="deleted-history-list" style="display: none;">';
+    html += phoneData.safari.deletedHistory.map(term => `<div class="list-item"><div style="color: #888;">${term}</div></div>`).join('');
+    html += '</div>';
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function toggleDeletedHistory() {
+    const list = document.getElementById('deleted-history-list');
+    if (list) {
+        const isVisible = list.style.display === 'block';
+        list.style.display = isVisible ? 'none' : 'block';
+    }
+}
+
+function renderMusicPlaylist() {
+    document.getElementById('music-playlist-title').innerHTML = `<span class="back-button" onclick="showPage('home')">‹</span> ${phoneData.music.playlistTitle}`;
+    const container = document.getElementById('music-track-list');
+    container.innerHTML = phoneData.music.tracks.map(track => `
+        <div class="list-item">
+            <div>
+                <div class="title">${track.title}</div>
+                <div class="preview">${track.artist}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderDiary() {
+    const container = document.getElementById('diary-list');
+    container.innerHTML = phoneData.diary.map(entry => `
+        <div class="diary-entry">
+            <div class="date">${entry.date}</div>
+            <div class="content">${entry.content}</div>
+        </div>
+    `).join('');
+}
+
+function renderCustomApp1() {
+    const appData = phoneData.customApp1;
+    document.getElementById('custom-app1-header').innerHTML = `<span class="back-button" onclick="showPage('home')">‹</span> ${appData.appName}`;
+    const container = document.getElementById('custom-app1-content');
+    container.innerHTML = `
+        <div class="starlight-note-body">
+            ${appData.content.lyrics.map(lyric => `
+                <div class="lyric-item">
+                    <div class="title">${lyric.title}</div>
+                    <div class="snippet">${lyric.snippet}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    const iconContainer = document.getElementById('custom-app-icon-1');
+    iconContainer.innerHTML = `<img src="https://github.com/sidsid-hue/sid/blob/main/%EA%B3%A0%EB%93%B1/free-icon-lyrics-4033682.png?raw=true"><span>${appData.appName}</span>`;
+}
+
+function startMetaMessageSequence() {
+    const banner = document.getElementById('notification-banner');
+    const bannerBody = banner.querySelector('.notification-body');
+    const bannerTitle = banner.querySelector('.notification-title');
+    if (!banner || !bannerBody) return;
+
+    let messageIndex = 0;
+
+    const showNextMessage = () => {
+        if (messageIndex >= phoneData.metaMessages.length) {
+            return; // Stop after all messages are shown
+        }
+        
+        bannerTitle.textContent = "메세지";
+        bannerBody.textContent = phoneData.metaMessages[messageIndex];
+        banner.classList.add('show');
+
+        // Hide after 3 seconds
+        setTimeout(() => {
+            banner.classList.remove('show');
+            messageIndex++;
+            // Wait for hide animation to finish before showing the next one
+            setTimeout(showNextMessage, 1500);
+        }, 3000);
+    };
+    
+    // Start the sequence after an initial delay
+    setTimeout(showNextMessage, 30000);
+}
+
+
+// Initial Render
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.home-screen').forEach(screen => {
+        screen.style.backgroundImage = `url('https://github.com/sidsid-hue/sid/blob/main/%ED%8F%B0%20%EB%B0%B0%EA%B2%BD.png?raw=true')`;
+    });
+
+    const simulatedStartTime = new Date(2025, 5, 2, 8, 40, 0); // June 2, 2025, 8:40 AM
+    const pageLoadTime = Date.now();
+
+    function updateClock() {
+        const elapsedMilliseconds = Date.now() - pageLoadTime;
+        const now = new Date(simulatedStartTime.getTime() + elapsedMilliseconds);
+        const fixedDate = new Date(2025, 5, 2); // Month is 0-indexed, so 5 is June.
+
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
+        
+        document.querySelectorAll('.status-bar').forEach(bar => {
+            bar.textContent = timeString;
+        });
+
+        const lockScreenTime = document.getElementById('lock-screen-time');
+        const lockScreenDate = document.getElementById('lock-screen-date');
+        if (lockScreenTime) {
+            lockScreenTime.textContent = timeString;
+        }
+        if (lockScreenDate) {
+            const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+            const dateString = `${fixedDate.getMonth() + 1}월 ${fixedDate.getDate()}일 ${days[fixedDate.getDay()]}`;
+            lockScreenDate.textContent = dateString;
+        }
+    }
+
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    const lockScreen = document.getElementById('lock-screen');
+    if (lockScreen) {
+        lockScreen.addEventListener('click', () => {
+            showPage('home');
+        });
+    }
+
+    renderCallHistory();
+    renderAlarms();
+    renderCalendar();
+    renderPhotos();
+    renderReminders();
+    renderMessageList();
+    renderNoteList();
+    renderSafariHistory();
+    renderMusicPlaylist();
+    renderDiary();
+    renderCustomApp1();
+
+    // Event Delegation for Note Clicks
+    const noteListContainer = document.getElementById('note-list');
+    if (noteListContainer) {
+        noteListContainer.addEventListener('click', (event) => {
+            const noteItem = event.target.closest('.list-item[data-note-id]');
+            if (noteItem) {
+                const noteId = parseInt(noteItem.dataset.noteId, 10);
+                if (!isNaN(noteId)) {
+                    handleNoteClick(noteId);
+                }
+            }
+        });
+    }
+    
+    // Event Listeners for Photo Modal
+    const photoModal = document.getElementById('photo-modal');
+    const closePhotoBtn = document.querySelector('.close-photo-modal');
+    if (closePhotoBtn) {
+        closePhotoBtn.addEventListener('click', closePhotoModal);
+    }
+    if (photoModal) {
+        photoModal.addEventListener('click', (event) => {
+            if (event.target === photoModal) {
+                closePhotoModal();
+            }
+        });
+    }
+
+    // Event Listeners for Password Modal
+    const passwordSubmitBtn = document.getElementById('password-submit');
+    const passwordCancelBtn = document.getElementById('password-cancel');
+    const passwordModalOverlay = document.getElementById('password-modal-overlay');
+
+    passwordSubmitBtn.addEventListener('click', () => {
+        const password = document.getElementById('password-input').value;
+        if (password === "0808") {
+            if (typeof unlockTarget === 'number') {
+                showNoteDetail(unlockTarget);
+            } else if (unlockTarget === 'diary') {
+                showPage('diary');
+            }
+            hidePasswordPrompt();
+        } else {
+            alert("암호가 틀렸습니다.");
+            const input = document.getElementById('password-input');
+            input.value = '';
+            input.focus();
+        }
+    });
+
+    passwordCancelBtn.addEventListener('click', hidePasswordPrompt);
+    passwordModalOverlay.addEventListener('click', (event) => {
+        if (event.target === passwordModalOverlay) {
+            hidePasswordPrompt();
+        }
+    });
+
+
+    const safariSearchBar = document.querySelector('#safari .search-bar');
+    if (safariSearchBar) {
+        safariSearchBar.addEventListener('focus', () => {
+            const historyContainer = document.getElementById('safari-history-container');
+            if (historyContainer) {
+                historyContainer.style.display = 'block';
+            }
+        });
+    }
+
+    startMetaMessageSequence();
+});
+
+</script>
+</body>
+</html>
