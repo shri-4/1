@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title></title>
+  <style>
+    :root{
+      color-scheme: dark;
+      --playerH: 62px;
+      --viewerW: 720px; /* PC에서 네이버웹툰 느낌 폭 */
+    }
+    *{ box-sizing: border-box; }
+    body{
+      margin:0;
+      background:#0b0b0f;
+      color:#eaeaf2;
+      font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+      overflow-x:hidden;
+    }
+
+    /* 상단 고정 플레이어 */
+    .playerbar{
+      position:fixed;
+      top:0; left:0; right:0;
+      z-index:999;
+      height: var(--playerH);
+      display:flex;
+      align-items:center;
+      background: rgba(11,11,15,.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      padding: 10px 12px;
+    }
+    .player{
+      width:100%;
+      max-width: 1100px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns: auto 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .btn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.08);
+      color:#fff;
+      padding:8px 12px;
+      border-radius:12px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    .progWrap{ display:grid; gap:6px; }
+    .timeRow{
+      display:flex;
+      justify-content:space-between;
+      font-size:12px;
+      opacity:.85;
+      padding:0 2px;
+      gap:10px;
+      white-space: nowrap;
+    }
+    input[type="range"]{ width:100%; accent-color:white; }
+
+    /* 웹툰 뷰어 */
+    main{
+      padding-top: calc(var(--playerH) + 10px);
+      padding-bottom: 48px;
+    }
+    .viewer{
+      width: min(var(--viewerW), 100%);
+      margin: 0 auto;
+      padding: 0 10px;
+    }
+
+    /* 안내 문구(본문 최상단, 스크롤하면 사라짐) */
+    .notice{
+      margin: 6px auto 16px;
+      font-size: 12px;
+      line-height: 1.6;
+      opacity: .68;
+      border-left: 2px solid rgba(255,255,255,.25);
+      padding-left: 10px;
+    }
+
+    .page{
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      margin: 0 0 14px;
+    }
+    .page img{
+      width: 100%;
+      height: auto;  /* ✅ PC에서 “전체가 다 보이게” */
+      display:block;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    footer{
+      width: min(var(--viewerW), 100%);
+      margin: 18px auto 0;
+      padding: 18px 10px;
+      border-top: 1px solid rgba(255,255,255,.10);
+    }
+    .links{ display:flex; flex-direction:column; gap:10px; }
+    a.link{
+      width: fit-content;
+      color:#eaeaf2;
+      text-decoration:none;
+      border-bottom:1px solid rgba(234,234,242,.35);
+      padding-bottom:2px;
+      font-weight:800;
+    }
+    a.link:hover{ border-bottom-color: rgba(234,234,242,.85); }
+
+    /* 작은 화면에서 플레이어 2줄 */
+    @media (max-width: 420px){
+      :root{ --playerH: 92px; }
+      .player{
+        grid-template-columns:auto 1fr;
+        grid-template-rows:auto auto;
+      }
+      .progWrap{ grid-column: 1 / -1; }
+      .timeRow{ font-size:11px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 상단 고정 플레이어 -->
+  <div class="playerbar">
+    <div class="player">
+      <button class="btn" id="playBtn" aria-label="재생/정지">▶</button>
+
+      <div class="progWrap">
+        <input id="progress" type="range" min="0" max="1000" value="0" step="1" aria-label="재생 위치" />
+        <div class="timeRow">
+          <span id="cur">0:00</span>
+          <span id="status" style="opacity:.8;">첫 스크롤 시 페이드 인</span>
+          <span id="dur">0:00</span>
+        </div>
+      </div>
+
+      <button class="btn" id="muteBtn" aria-label="음소거">🔊</button>
+    </div>
+  </div>
+
+  <main>
+    <div class="viewer">
+
+      <!-- 본문 최상단 안내 문구 -->
+      <div class="notice">
+        * 음악은 브라우저 정책 때문에 “첫 스크롤 / 터치 / 클릭” 이후 재생됩니다.<br>
+        * 상단 플레이어에서 재생 · 정지 · 구간 이동이 가능합니다.
+      </div>
+
+      <!-- 이미지 2장 -->
+      <figure class="page">
+        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/h1.webp"
+             alt="h1" loading="eager" referrerpolicy="no-referrer">
+      </figure>
+
+      <figure class="page">
+        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/h2.webp"
+             alt="h2" loading="lazy" referrerpolicy="no-referrer">
+      </figure>
+
+    </div>
+
+    <footer>
+      <div class="links">
+        <a class="link"
+           href="https://crack.wrtn.ai/stories/692998656f80f8b51d32bc9a/episodes/693e912db3f465f8f6947618?autoScroll=false"
+           target="_blank" rel="noopener noreferrer">
+          최현태와 대화하러가기
+        </a>
+
+        <a class="link"
+           href="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/%ED%98%84%ED%83%9Cost.mp3"
+           download="현태ost.mp3">
+          최현태 테마곡 다운받기
+        </a>
+      </div>
+
+      <div class="notice">
+        * 테마곡은 suno로 만든 최현태 전용 테마곡이며, 클릭 시 GitHub raw 파일로 바로 다운로드됩니다.
+      </div>
+    </footer>
+  </main>
+
+  <!-- 배경음악 -->
+  <audio id="bgm" preload="auto" loop playsinline webkit-playsinline>
+    <source src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/%ED%98%84%ED%83%9Cost.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script>
+    const bgm = document.getElementById("bgm");
+    const playBtn = document.getElementById("playBtn");
+    const muteBtn = document.getElementById("muteBtn");
+    const progress = document.getElementById("progress");
+    const curEl = document.getElementById("cur");
+    const durEl = document.getElementById("dur");
+    const statusEl = document.getElementById("status");
+
+    let userStarted = false;
+    let seeking = false;
+
+    function fmt(sec){
+      sec = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(sec / 60);
+      const s = String(sec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function setPlayUI(isPlaying){
+      playBtn.textContent = isPlaying ? "⏸" : "▶";
+      statusEl.textContent = isPlaying ? "재생 중" : "일시정지";
+    }
+
+    function fadeIn(ms = 1400){
+      bgm.volume = 0;
+      const start = performance.now();
+      function step(t){
+        const p = Math.min((t - start) / ms, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        bgm.volume = eased;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    async function startWithFade(){
+      if (userStarted) return;
+      userStarted = true;
+      try{
+        await bgm.play();
+        fadeIn(1400);
+        setPlayUI(true);
+      }catch(e){
+        userStarted = false;
+        statusEl.textContent = "재생이 막혔어요: 화면을 한 번 클릭/탭해주세요.";
+        console.warn(e);
+      }
+    }
+
+    // 첫 스크롤/휠/터치 스크롤로 시작 (웹툰처럼 스크롤하자마자)
+    const first = () => startWithFade();
+    window.addEventListener("wheel", first, { once:true, passive:true });
+    window.addEventListener("touchmove", first, { once:true, passive:true });
+    window.addEventListener("scroll", first, { once:true, passive:true });
+
+    // 보험: 첫 클릭/탭
+    window.addEventListener("click", () => { if(!userStarted) startWithFade(); }, { once:true });
+
+    // 재생/정지 버튼
+    playBtn.addEventListener("click", async () => {
+      try{
+        if (bgm.paused){
+          if (!userStarted){
+            userStarted = true;
+            await bgm.play();
+            fadeIn(900);
+          }else{
+            await bgm.play();
+          }
+          setPlayUI(true);
+        }else{
+          bgm.pause();
+          setPlayUI(false);
+        }
+      }catch(e){
+        statusEl.textContent = "재생 실패(정책/네트워크 확인)";
+        console.warn(e);
+      }
+    });
+
+    // 음소거 버튼
+    muteBtn.addEventListener("click", () => {
+      bgm.muted = !bgm.muted;
+      muteBtn.textContent = bgm.muted ? "🔇" : "🔊";
+    });
+
+    // 총 길이
+    bgm.addEventListener("loadedmetadata", () => {
+      durEl.textContent = fmt(bgm.duration);
+    });
+
+    // 진행 업데이트
+    bgm.addEventListener("timeupdate", () => {
+      if (!seeking){
+        const p = (bgm.currentTime / (bgm.duration || 1)) * 1000;
+        progress.value = String(Math.floor(p));
+      }
+      curEl.textContent = fmt(bgm.currentTime);
+      if (bgm.duration) durEl.textContent = fmt(bgm.duration);
+    });
+
+    bgm.addEventListener("play", () => setPlayUI(true));
+    bgm.addEventListener("pause", () => setPlayUI(false));
+
+    // 구간 이동
+    progress.addEventListener("input", () => { seeking = true; });
+    progress.addEventListener("change", () => {
+      const ratio = Number(progress.value) / 1000;
+      const t = ratio * (bgm.duration || 0);
+      if (Number.isFinite(t)) bgm.currentTime = t;
+      seeking = false;
+    });
+  </script>
+</body>
+</html>
