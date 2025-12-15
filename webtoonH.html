@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title></title>
+
+  <style>
+    :root{
+      color-scheme: dark;
+      --playerH: 64px;
+      --viewerW: 720px;
+    }
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      background:#0b0b0f;
+      color:#eaeaf2;
+      font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+      overflow-x:hidden;
+    }
+
+    /* ===============================
+       상단 고정 플레이어 (무조건 1줄)
+       =============================== */
+    .playerbar{
+      position:fixed;
+      top:0; left:0; right:0;
+      z-index:999;
+      height: var(--playerH);
+      display:flex;
+      align-items:center;
+      background: rgba(11,11,15,.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      padding: 10px;
+    }
+
+    .player{
+      width:100%;
+      max-width:1100px;
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap: nowrap; /* ✅ 절대 줄바꿈 안 됨 */
+    }
+
+    .iconBtn{
+      appearance:none;
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.08);
+      color:#fff;
+      font-weight:800;
+      cursor:pointer;
+      flex: 0 0 auto;
+    }
+
+    .progWrap{
+      flex: 1 1 auto;
+      min-width: 0; /* ✅ 모바일 깨짐 방지 핵심 */
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    input[type="range"]{
+      width:100%;
+      accent-color:white;
+    }
+
+    .timeRow{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:11px;
+      opacity:.85;
+      white-space: nowrap;
+    }
+
+    #status{
+      flex:1 1 auto;
+      min-width:0;
+      text-align:center;
+      overflow:hidden;
+      text-overflow: ellipsis; /* 길면 … */
+    }
+
+    /* 아주 작은 폰 */
+    @media (max-width:360px){
+      .iconBtn{ width:36px; height:36px; border-radius:10px; }
+      .timeRow{ font-size:10px; }
+    }
+
+    /* ===============================
+       웹툰 뷰어
+       =============================== */
+    main{
+      padding-top: calc(var(--playerH) + 12px);
+      padding-bottom: 48px;
+    }
+
+    .viewer{
+      width: min(var(--viewerW), 100%);
+      margin: 0 auto;
+      padding: 0 10px; /* ✅ PC용 웹툰 느낌 여백 */
+    }
+
+    .notice{
+      margin: 6px auto 16px;
+      font-size:12px;
+      line-height:1.6;
+      opacity:.65;
+      border-left:2px solid rgba(255,255,255,.25);
+      padding-left:10px;
+    }
+
+    .page{
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      margin-bottom:14px;
+    }
+
+    .page img{
+      width:100%;
+      height:auto; /* ✅ PC에서도 전체 다 보임 */
+      display:block;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    footer{
+      width: min(var(--viewerW), 100%);
+      margin: 18px auto 0;
+      padding: 18px 10px;
+      border-top:1px solid rgba(255,255,255,.10);
+    }
+
+    .links{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    a.link{
+      width: fit-content;
+      color:#eaeaf2;
+      text-decoration:none;
+      border-bottom:1px solid rgba(234,234,242,.35);
+      padding-bottom:2px;
+      font-weight:800;
+    }
+
+    .small{
+      margin-top:8px;
+      font-size:12px;
+      line-height:1.6;
+      opacity:.65;
+    }
+
+    /* =======================================================
+       ✅ 모바일에서만: 이미지가 화면 끝까지 "꽉 차게"
+       (PC는 네이버웹툰처럼 중앙폭 유지)
+       ======================================================= */
+    @media (max-width: 768px){
+      .viewer{
+        width: 100vw;
+        max-width: 100vw;
+        padding: 0;     /* ← 좌우 여백 제거 */
+        margin: 0;      /* ← 가운데 정렬 해제 */
+      }
+
+      .page{
+        border-radius: 0;      /* ← 모서리 둥글기 제거 */
+        border: 0;             /* ← 테두리 제거 */
+        background: transparent;
+        margin: 0;             /* ← 페이지 사이 여백 제거(완전 붙이기) */
+      }
+
+      .page + .page{
+        margin-top: 0;         /* 안전 */
+      }
+
+      .page img{
+        width: 100vw;          /* ← 진짜 화면 폭 강제 */
+        max-width: 100vw;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===============================
+       상단 고정 플레이어
+       =============================== -->
+  <div class="playerbar">
+    <div class="player">
+      <button class="iconBtn" id="playBtn" aria-label="재생/정지">▶</button>
+
+      <div class="progWrap">
+        <input id="progress" type="range" min="0" max="1000" value="0" step="1">
+        <div class="timeRow">
+          <span id="cur">0:00</span>
+          <span id="status">첫 스크롤 시 페이드 인</span>
+          <span id="dur">0:00</span>
+        </div>
+      </div>
+
+      <button class="iconBtn" id="muteBtn" aria-label="음소거">🔊</button>
+    </div>
+  </div>
+
+  <!-- ===============================
+       본문
+       =============================== -->
+  <main>
+    <div class="viewer">
+
+      <div class="notice">
+        * 음악은 브라우저 정책 때문에 '첫 클릭' 이후 재생됩니다.<br>
+        * 상단 플레이어에서 재생 · 정지 · 구간 이동이 가능합니다.<br>
+        * 음악이 나오지 않을 시 '새로고침' 해주세요.
+      </div>
+
+      <figure class="page">
+        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/w1.webp" alt="w1">
+      </figure>
+
+      <figure class="page">
+        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/w2.webp" alt="w2">
+      </figure>
+
+      <figure class="page">
+        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/w3.webp" alt="w3">
+      </figure>
+
+    </div>
+
+    <footer>
+      <div class="links">
+        <a class="link"
+           href="https://crack.wrtn.ai/stories/692998656f80f8b51d32bc9a/episodes/693e912db3f465f8f6947618?autoScroll=false"
+           target="_blank" rel="noopener noreferrer">
+          최현태와 대화하러가기
+        </a>
+
+        <a class="link"
+           href="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/%ED%98%84%ED%83%9Cost.mp3"
+           download="최현태ost.mp3">
+          최현태 테마곡 다운받기
+        </a>
+      </div>
+
+      <div class="small">
+        *테마곡은 suno AI로 만든 최현태 전용 테마곡이며,
+        클릭 시 MP3 파일로 바로 다운로드됩니다.
+      </div>
+    </footer>
+  </main>
+
+  <!-- ===============================
+       배경음악
+       =============================== -->
+  <audio id="bgm" preload="auto" loop playsinline webkit-playsinline>
+    <source src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/%ED%98%84%ED%83%9Cost.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- ===============================
+       JS
+       =============================== -->
+  <script>
+    const bgm = document.getElementById("bgm");
+    const playBtn = document.getElementById("playBtn");
+    const muteBtn = document.getElementById("muteBtn");
+    const progress = document.getElementById("progress");
+    const curEl = document.getElementById("cur");
+    const durEl = document.getElementById("dur");
+    const statusEl = document.getElementById("status");
+
+    let userStarted = false;
+    let seeking = false;
+
+    function fmt(sec){
+      sec = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(sec / 60);
+      const s = String(sec % 60).padStart(2,"0");
+      return `${m}:${s}`;
+    }
+
+    function setUI(playing){
+      playBtn.textContent = playing ? "⏸" : "▶";
+      statusEl.textContent = playing ? "재생 중" : "일시정지";
+    }
+
+    function fadeIn(ms=1400){
+      bgm.volume = 0;
+      const start = performance.now();
+      function step(t){
+        const p = Math.min((t-start)/ms,1);
+        bgm.volume = 1 - Math.pow(1-p,3);
+        if(p<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    async function startBGM(){
+      if(userStarted) return;
+      userStarted = true;
+      try{
+        await bgm.play();
+        fadeIn();
+        setUI(true);
+      }catch(e){
+        userStarted = false;
+        statusEl.textContent = "화면을 한 번 탭/클릭해주세요.";
+      }
+    }
+
+    ["wheel","touchmove","scroll"].forEach(ev=>{
+      window.addEventListener(ev, startBGM, { once:true, passive:true });
+    });
+    window.addEventListener("click", startBGM, { once:true });
+
+    playBtn.addEventListener("click", async ()=>{
+      if(bgm.paused){
+        if(!userStarted){ userStarted=true; await bgm.play(); fadeIn(900); }
+        else await bgm.play();
+        setUI(true);
+      }else{
+        bgm.pause();
+        setUI(false);
+      }
+    });
+
+    muteBtn.addEventListener("click", ()=>{
+      bgm.muted = !bgm.muted;
+      muteBtn.textContent = bgm.muted ? "🔇" : "🔊";
+    });
+
+    bgm.addEventListener("loadedmetadata", ()=>{
+      durEl.textContent = fmt(bgm.duration);
+    });
+
+    bgm.addEventListener("timeupdate", ()=>{
+      if(!seeking){
+        progress.value = (bgm.currentTime/(bgm.duration||1))*1000;
+      }
+      curEl.textContent = fmt(bgm.currentTime);
+    });
+
+    progress.addEventListener("input", ()=> seeking=true);
+    progress.addEventListener("change", ()=>{
+      bgm.currentTime = (progress.value/1000)*(bgm.duration||0);
+      seeking=false;
+    });
+  </script>
+
+</body>
+</html>
