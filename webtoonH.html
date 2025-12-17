@@ -180,7 +180,7 @@
         border-radius: 0;      /* ← 모서리 둥글기 제거 */
         border: 0;             /* ← 테두리 제거 */
         background: transparent;
-        margin: 0;             /* ← 페이지 사이 여백 제거(완전 붙이기) */
+        margin: 0 0 1px 0;   /* ✅ 아래로 1px만 */
       }
 
       .page + .page{
@@ -191,6 +191,7 @@
         width: 100vw;          /* ← 진짜 화면 폭 강제 */
         max-width: 100vw;
         height: auto;
+        vertical-align: top;   /* ✅ 이미지 아래 미세 공백/붙음 이슈 방지 */
       }
     }
   </style>
@@ -232,11 +233,11 @@
       </div>
 
       <figure class="page">
-        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/W1.webp" alt="w1">
+        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/W_1.webp" alt="w1">
       </figure>
 
       <figure class="page">
-        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/W2.webp" alt="w2">
+        <img src="https://raw.githubusercontent.com/shri-4/1/refs/heads/main/W_2.webp" alt="w2">
       </figure>
     </div>
 
@@ -245,7 +246,7 @@
         <a class="link"
            href="https://crack.wrtn.ai/stories/692998656f80f8b51d32bc9a/episodes/69415ec972e8f7c4ff156a03?autoScroll=true"
            target="_blank" rel="noopener noreferrer">
-          최현태를 만나러 가기
+          최현태 만나러 가기
         </a>
 
         <a class="link"
@@ -361,5 +362,6 @@
 
 </body>
 </html>
+
 
 
